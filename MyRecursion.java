@@ -24,10 +24,8 @@ public class MyRecursion {
 			
 			try {
 				// parse the input into int and see if it is an integer indeed
-				intInput = Integer.parseInt( input ); // if tis indeed not an 
-													  // of type int, it shall 
-													  // be caught by the catch
-												      // statement
+				intInput = Integer.parseInt( input ); 
+				// if tis indeed not an of type int, it shall be caught by the catch statement
 				
 				// once we know it is an int, we need to make sure that it's a 
 				// valid fibonacci number, i.e > 0
