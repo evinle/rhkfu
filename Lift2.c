@@ -43,7 +43,11 @@ int main( int argc, char** argv )
 
     sscanf( argv[1], "%d", &m );
     sscanf( argv[2], "%d", &t );
-        
+    
+    /*Request *total;
+   
+    int totalReq, totalMov;*/
+ 
     FILE* outFile = fopen( "sim_output", "w" );
     fclose( outFile );
 
@@ -83,6 +87,14 @@ int main( int argc, char** argv )
         reqBuf->requests = (Request*)mmap(NULL, m * sizeof(Request), 
         PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );
 
+        /*total = (Request*)mmap(NULL, sizeof(Request), 
+        PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );*/
+
+        /*totalReq = (int)mmap(NULL, sizeof(int), 
+        PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );
+        
+        totalMov = (int)mmap(NULL, sizeof(int), 
+        PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );*/
         /*for( x = 0 ; x < m; x++ )
         {
             reqBuf->requests[x] = (int*)mmap(NULL, 2 * sizeof(int), 
@@ -93,6 +105,7 @@ int main( int argc, char** argv )
         end = (int*)mmap( NULL, sizeof(int), 
         PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );
     
+        /**total = 0;*/
         *end = 0; 
         ID[0] = fork(); 
         
@@ -116,7 +129,12 @@ int main( int argc, char** argv )
             }
         
             processReq( id - 1 );
-            wait( 0 );
+            
+            wait( NULL );
+            
+            /*total = WEXITSTATUS( total ); 
+            totalMov += total->from;
+            totalReq += total->to;*/
         }
         else
         {
@@ -171,6 +189,12 @@ int main( int argc, char** argv )
         munmap( reqBuf, sizeof( Buffer ) );
 
         munmap( end, sizeof( int ) );
+
+        /*munmap( total, sizeof( Request ) );
+
+        munmap( totalReq, sizeof( int ) );
+
+        munmap( totalMov, sizeof( int ) );*/
         
         printf( "DONE\n" );
     }
@@ -187,9 +211,7 @@ void request()
     sem_t *emptysem = sem_open( EMPTYSEM, 0 );
 
     while( !feof( inFile ) )
-    {
-        
-
+    { 
         sem_wait( emptysem );
  
         sem_wait( mutexsem );        
@@ -234,12 +256,11 @@ void processReq( int thisID )
     int thisMove = 0, totalMove = 0, processed = 0, current = 1;
 
     FILE* outFile = fopen( "sim_output", "a" );
-    int fsv;
 
     for(;;)
     {
         sem_wait( mutexsem );
-       
+      
         if( *end == 1 )
         {
             sem_post( mutexsem );
@@ -268,11 +289,10 @@ void processReq( int thisID )
         {
             sem_post( mutexsem );
 
-            sem_wait( fullsem );
+            sem_wait( fullsem ); 
 
             sem_wait( mutexsem );
-            
-
+           
             from = (reqBuf->requests[0].from);
             to = (reqBuf->requests[0].to);
             
@@ -288,7 +308,6 @@ void processReq( int thisID )
             sem_post( mutexsem );
 
             sem_post( emptysem );
-
             
             thisMove = abs( from - current ) + abs( from - to );
 
