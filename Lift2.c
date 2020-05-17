@@ -1,4 +1,4 @@
-#include <stdlib.h>
+/*#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -21,33 +21,34 @@ typedef struct{
 typedef struct{
     Request* requests;
     int count;
-} Buffer;
+} Buffer;*/
 
-int m, t, id = 1, x;
+#include "Lift2.h"
 
+/* m is the size of the buffer, t is the time for sleeping in each function and
+id is used to assign ids to the processes */
+int m, t, id = 1;
+int *allMoves, *allRequests;
+
+/* buffer and writing file is made global so we don't have to pass it around */
 Buffer *reqBuf;
 
 FILE* inFile;
 
+/* signifies when to end a method */
 int* end;
-
-void request();
-
-void processReq( int );
 
 int main( int argc, char** argv )
 {
+    /* used to identify processes */
     pid_t ID[3];
 
+    /* delare the semaphores that will be used */
     sem_t *mutexsem, *fullsem, *emptysem, *writesem;
 
     sscanf( argv[1], "%d", &m );
     sscanf( argv[2], "%d", &t );
     
-    /*Request *total;
-   
-    int totalReq, totalMov;*/
- 
     FILE* outFile = fopen( "sim_output", "w" );
     fclose( outFile );
 
@@ -87,14 +88,12 @@ int main( int argc, char** argv )
         reqBuf->requests = (Request*)mmap(NULL, m * sizeof(Request), 
         PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );
 
-        /*total = (Request*)mmap(NULL, sizeof(Request), 
-        PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );*/
 
-        /*totalReq = (int)mmap(NULL, sizeof(int), 
+        allRequests = (int*)mmap(NULL, sizeof(int), 
         PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );
         
-        totalMov = (int)mmap(NULL, sizeof(int), 
-        PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );*/
+        allMoves = (int*)mmap(NULL, sizeof(int), 
+        PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );
         /*for( x = 0 ; x < m; x++ )
         {
             reqBuf->requests[x] = (int*)mmap(NULL, 2 * sizeof(int), 
@@ -105,7 +104,8 @@ int main( int argc, char** argv )
         end = (int*)mmap( NULL, sizeof(int), 
         PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0 );
     
-        /**total = 0;*/
+        *allMoves = 0;
+        *allRequests = 0;
         *end = 0; 
         ID[0] = fork(); 
         
@@ -159,10 +159,22 @@ int main( int argc, char** argv )
             fclose( inFile );
         }
         
-        printf( "I am process %d with id %d\n", (int)getpid(), id );
         wait( 0 );
-        /*exit( 0 );*/
         
+        outFile = fopen( "sim_output", "a" );
+        
+        if( outFile == NULL )
+        {
+            perror( "Cannot open file to print total values\n" );
+        }
+        else
+        {
+            fprintf( outFile, "\nTotal number of requests: %d\nTotal number of"
+                " movements: %d\n", *allRequests, *allMoves );
+        }
+        
+        fclose( outFile );
+
         sem_close( mutexsem );
     
         sem_close( fullsem );
@@ -190,11 +202,9 @@ int main( int argc, char** argv )
 
         munmap( end, sizeof( int ) );
 
-        /*munmap( total, sizeof( Request ) );
+        munmap( &allMoves, sizeof( int ) );
 
-        munmap( totalReq, sizeof( int ) );
-
-        munmap( totalMov, sizeof( int ) );*/
+        munmap( &allRequests, sizeof( int ) );
         
         printf( "DONE\n" );
     }
@@ -219,8 +229,6 @@ void request()
         fscanf( inFile, "%d %d\n", &( reqBuf->requests[reqBuf->count].from ),
             &( reqBuf->requests[reqBuf->count].to ) );
 
-        printf( "%d %d\n", reqBuf->requests[reqBuf->count].from ,
-             reqBuf->requests[reqBuf->count].to );
         reqBuf->count++;
                      
         sem_post( mutexsem ); 
@@ -263,31 +271,39 @@ void processReq( int thisID )
       
         if( *end == 1 )
         {
-            sem_post( mutexsem );
-            fclose( outFile );
-            printf( "\nPROCESS %d HAS FINISHED \n\n", thisID );
+            if( reqBuf->count == 0 )
+            {
+                sem_post( mutexsem );
+                fclose( outFile );
+                printf( "\nPROCESS %d HAS FINISHED \n\n", thisID );
         
-            if( sem_close( mutexsem ) < 0 )
-            {
-                perror( "Failed to close mutexsem\n" );
-            }  
-            if( sem_close( emptysem ) < 0 )
-            {
-                perror( "Failed to close emptysem\n" );
+                if( sem_close( mutexsem ) < 0 )
+                {
+                    perror( "Failed to close mutexsem\n" );
+                }  
+                if( sem_close( emptysem ) < 0 )
+                {
+                    perror( "Failed to close emptysem\n" );
+                }
+                if( sem_close( fullsem ) < 0 )
+                {
+                    perror( "Failed to close fullsem\n" );
+                }
+                if( sem_close( writesem ) < 0 )
+                {
+                    perror( "Failed to close writesem\n" );
+                }
+                exit( 0 );
             }
-            if( sem_close( fullsem ) < 0 )
+            else
             {
-                perror( "Failed to close fullsem\n" );
+                goto conproc;
             }
-            if( sem_close( writesem ) < 0 )
-            {
-                perror( "Failed to close writesem\n" );
-            }
-            exit( 0 );
         }
         else 
         {
-            sem_post( mutexsem );
+            
+            conproc: sem_post( mutexsem );
 
             sem_wait( fullsem ); 
 
@@ -314,6 +330,14 @@ void processReq( int thisID )
             totalMove += thisMove;
 
             processed++;
+
+            sem_wait( mutexsem );
+            
+            (*allMoves) += thisMove;
+            
+            (*allRequests)++;
+        
+            sem_post( mutexsem );
 
             sem_wait( writesem );
             
