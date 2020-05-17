@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 /* initializing all mutexes and conditions as global variables as they to be 
 seen by all of the processes */
@@ -22,6 +23,8 @@ to be done. end signifies the end of the while loops in the consumer, and
 liftID helps assigning an id for our processes */
 int m, t, end, liftID;
 
+/* buffer also needs to be shared between threads and therefore is a global 
+variable */
 Buffer* reqBuf; 
 
 int main( int argc, char** argv )
@@ -52,9 +55,9 @@ int main( int argc, char** argv )
     {
         printf( "Please enter a value of m that is larger than 1\n" );
     }
-    else if( t <= 0 )
+    else if( t < 0 )
     {
-        printf( "Please enter a value for t that is larger than 0\n" );
+        printf( "Please enter a non negative value for t\n" );
     }
     else
     {
@@ -134,7 +137,7 @@ void* request( void* novalue )
 
 		fscanf( inFile, "%d %d\n", &( nextReq.from ), &( nextReq.to ) );
 
-        if( reqBuf->count == m )
+        while( reqBuf->count == m )
         {
             pthread_cond_wait( &empty, &mutex );
         }
@@ -184,7 +187,7 @@ void* processReq( void* novalue )
     {        
         pthread_mutex_lock( &mutex );
 
-        if( reqBuf->count == 0 )
+        while( reqBuf->count <= 0 )
         {  
             if( feof( inFile ) )
             {
@@ -201,11 +204,14 @@ void* processReq( void* novalue )
             }
         }
 
-        thisReq.from = (reqBuf->reQueue[reqBuf->count - 1]).from;
+        thisReq.from = (reqBuf->reQueue[0]).from;
 
-        thisReq.to = (reqBuf->reQueue[reqBuf->count - 1]).to;
+        thisReq.to = (reqBuf->reQueue[0]).to;
 
         reqBuf->count--;
+
+        memmove( &( reqBuf->reQueue[0] ), &( reqBuf->reQueue[1] ), 
+            sizeof( Request ) * reqBuf->count );
 
         pthread_cond_signal( &empty );
         
