@@ -223,7 +223,6 @@ void* processReq( void* novalue )
             }
             else
             {
-                printf( "Thread %d waiting\n", thisID );
                 pthread_cond_wait( &full, &mutex );
             }
         }
