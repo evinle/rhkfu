@@ -36,7 +36,9 @@ int main( int argc, char** argv )
 
     if( argc != 3 )
     {
-        printf( "Please enter in the arguments " );
+        printf( "Please enter the details for the operation of the lifts as:\n"
+            "./lift_sim_B m t \nwhere: \nm: the size of the buffer \n"
+            "t: the time that each lift takes to complete its operations\n" );
     }
     else if( m  < 1 )
     {
@@ -60,7 +62,7 @@ int main( int argc, char** argv )
         /* create semaphores using sem open */
 
         /* mutex sem is our primary semaphore which is used to keep mutual 
-        exclusion intached for global variables */
+        exclusion intact for global variables */
         mutexsem = sem_open( MUTEXSEM, O_CREAT, 0666, 1 ) ;
        
         /* fullsem is used to set a limit on how many elements the consumers 
