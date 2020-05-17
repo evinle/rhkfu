@@ -1,30 +1,25 @@
-#include <stdio.h>
 #include "Lift.h"
-#include <pthread.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
 
 /* initializing all mutexes and conditions as global variables as they to be 
 seen by all of the processes */
-pthread_mutex_t writeMutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t full = PTHREAD_COND_INITIALIZER;
-pthread_cond_t empty = PTHREAD_COND_INITIALIZER; 
+static pthread_mutex_t writeMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t full = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t empty = PTHREAD_COND_INITIALIZER; 
 
 /* initializing both the file pointer that we're reading from and the file 
 pointer that we're writing to as global variables because they also need to be
 seen by all of the processes*/
-FILE* inFile;
-FILE* outFile;
+static FILE* inFile;
+static FILE* outFile;
 
 /* m is the size of the buffer, while t is the time it takes for each request 
 to be done, and liftID helps assigning an id for our processes */
-int m, t, liftID;
+static int m, t, liftID;
 
 /* buffer also needs to be shared between threads and therefore is a global 
 variable */
-Buffer* reqBuf; 
+static Buffer* reqBuf; 
 
 int main( int argc, char** argv )
 {
